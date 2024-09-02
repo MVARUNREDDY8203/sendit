@@ -1,0 +1,24 @@
+{
+    "name": "sendit_backend",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "dependencies": {
+        "express": "^4.18.2",
+        "multer": "^1.4.5-lts.1",
+        "nodemailer": "^6.9.1",
+        "uuid": "^9.0.0",
+        "redis": "^4.6.5",
+        "firebase-admin": "^11.5.0",
+        "cors": "^2.8.5",
+        "axios": "^1.5.1",
+        "dotenv": "^16.1.4"
+    },
+    "keywords": [],
+    "author": "M VARUN REDDY",
+    "license": "ISC"
+}

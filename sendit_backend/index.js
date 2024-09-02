@@ -10,7 +10,13 @@ require("dotenv").config();
 const app = express();
 const upload = multer({ memory: true });
 
-app.use(cors());
+const corsOptions = {
+    origin: "*", // Allow all origins (or specify your domain)
+    methods: ["GET", "POST"], // Ensure GET and POST are allowed
+    allowedHeaders: ["Content-Type", "Authorization"], // Include necessary headers
+};
+
+app.use(cors(corsOptions));
 
 // Initialize Firebase Admin SDK
 admin.initializeApp({

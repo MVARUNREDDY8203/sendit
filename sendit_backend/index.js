@@ -60,7 +60,7 @@ const rateLimiter = async (req, res, next) => {
     const ip = req.ip;
     const current = await redisClient.incr(ip);
 
-    if (current > 12) {
+    if (current > 1000) {
         return res.status(429).send("Too many requests");
     }
 

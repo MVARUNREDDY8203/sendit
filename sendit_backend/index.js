@@ -18,6 +18,14 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+// Force HTTPS middleware
+app.use((req, res, next) => {
+    if (req.headers["x-forwarded-proto"] !== "https") {
+        return res.redirect(`https://${req.get("host")}${req.url}`);
+    }
+    next();
+});
+
 // Initialize Firebase Admin SDK
 admin.initializeApp({
     credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_KEY)),
@@ -113,9 +121,10 @@ app.post("/upload", rateLimiter, upload.single("file"), async (req, res) => {
         });
 
         // Create a download URL that points to our new endpoint
-        const downloadUrl = `${req.protocol}://${req.get("host")}/download/${
-            docRef.id
-        }`;
+        // const downloadUrl = `${req.protocol}://${req.get("host")}/download/${
+        //     docRef.id
+        // }`;
+        const downloadUrl = `https://${req.get("host")}/download/${docRef.id}`;
 
         const expiryDate = expiryTimestamp.toDate();
         const day = String(expiryDate.getDate()).padStart(2, "0");

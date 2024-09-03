@@ -19,8 +19,18 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Force HTTPS middleware
+// app.use((req, res, next) => {
+//     if (req.headers["x-forwarded-proto"] !== "https") {
+//         return res.redirect(`https://${req.get("host")}${req.url}`);
+//     }
+//     next();
+// });
+// Force HTTPS middleware
 app.use((req, res, next) => {
-    if (req.headers["x-forwarded-proto"] !== "https") {
+    if (
+        req.headers["x-forwarded-proto"] !== "https" &&
+        req.path == "/download"
+    ) {
         return res.redirect(`https://${req.get("host")}${req.url}`);
     }
     next();

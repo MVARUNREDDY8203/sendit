@@ -22,17 +22,21 @@ const InputForm = () => {
     const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB in bytes
 
     useEffect(() => {
-        const warmupServer = async () => {
+        let intervalId;
+        const checkServerStatus = async () => {
             try {
                 await axios.get(import.meta.env.VITE_WARMUP_ENDPOINT);
                 setIsServerReady(true);
+                clearInterval(intervalId); // Stop checking once the server is ready
             } catch (error) {
-                console.error("Error warming up server:", error);
-                setTimeout(warmupServer, 2000); // Retry every 5 seconds
+                console.error("Server not ready yet:", error);
+                setIsServerReady(false);
             }
         };
 
-        warmupServer();
+        intervalId = setInterval(checkServerStatus, 3000); // Check every 3 seconds
+
+        return () => clearInterval(intervalId); // Clean up on component unmount
     }, []);
 
     const handleEmailChange = (e) => {
@@ -73,12 +77,9 @@ const InputForm = () => {
         if (!isServerReady) {
             showToast(
                 "Waiting",
-                "The server is still warming up (Creater cant afford a paid server). Your file will be uploaded as soon as the server is ready.",
+                "The server is still warming up. Please wait a moment and try again.",
                 "warning"
             );
-
-            setUploading(true);
-            setMessage("Queuing file upload...");
             return;
         }
 
@@ -169,23 +170,43 @@ const InputForm = () => {
                             </Button>
                         )}
                     </Text>
+                    {/* sendit btn */}
                     <Button
                         size='md'
                         colorScheme='teal'
                         cursor='pointer'
                         onClick={handleSendIt}
-                        isDisabled={!(email && file) || !isServerReady}
+                        isDisabled={!(email && file && isServerReady)}
                         isLoading={uploading}
                         w={"100%"}
                     >
-                        {"SendIt"}
+                        {isServerReady ? "SendIt" : "Waiting for server..."}
                     </Button>
-                    {/* {message && (
-                        <Text color={uploading ? "yellow.500" : "green.500"}>
-                            {message}
-                        </Text>
-                    )} */}
                 </Flex>
+            </Flex>
+            {/* server status */}
+            <Flex
+                position='fixed'
+                bottom='4'
+                right='4'
+                alignItems='center'
+                bg='white'
+                p='2'
+                borderRadius='full'
+                boxShadow='md'
+            >
+                <div
+                    style={{
+                        width: "12px",
+                        height: "12px",
+                        borderRadius: "50%",
+                        backgroundColor: isServerReady ? "green" : "red",
+                        marginRight: "8px",
+                    }}
+                />
+                <Text fontSize='sm' fontWeight='medium' color={"black"}>
+                    {isServerReady ? "Server Online" : "Server Offline"}
+                </Text>
             </Flex>
         </>
     );

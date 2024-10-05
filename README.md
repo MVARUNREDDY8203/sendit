@@ -1,4 +1,4 @@
-# [Sendit: A Fast, No SignUp, File Transfer Service](https://www.justsendit.vercel.app) 🚀
+# [Sendit: A Fast, No SignUp, File Transfer Service](https://justsendit.vercel.app) 🚀
 
 ### [Demonstration of working - Video](https://www.youtube.com/watch?v=VypCG90-g5M)
 

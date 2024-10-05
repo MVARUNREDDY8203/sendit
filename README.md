@@ -3,6 +3,8 @@
 ### [Demonstration of working - Video](https://www.youtube.com/watch?v=VypCG90-g5M)
 
 SendIt is a fast, no-signup file transfer service designed to help users send files directly to their email without the hassle of registration. It is particularly useful for students and professionals working in environments where logging into shared systems is slow and cumbersome. Using SendIt, users can upload their files and receive them in their inbox with just a few clicks, solving the issue of network constraints and reducing the risk of forgetting to log out.
+![image](https://github.com/user-attachments/assets/1b492f51-245f-45d2-a7d9-5fdff0242000)
+
 
 ## Table of Contents
 - [Features](#-features)

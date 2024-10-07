@@ -186,6 +186,6 @@ sendit/
     - environment variables are loaded as mentioned above
     - #### Issues with Backend deployment on Render and Fix
         - I chose the **free tier** on Render for my node server which comes with a big limitation: the server instance goes to sleep after **15 minutes** of 0 inbound traffic requests. The server takes about **50 seconds** to come back live after detecting some inbound request the instance.
-    - #### Fix:
+    - #### Fix #1 (currently using):
         - I developed a new `/warmup` endpoint which the frontend app starts to ping as soon as it is launched in a browser. The status button displays the status of the server if online/ offline for better UX. We wait till the server is online; i.e. after getting a `status:2XX` response from `/warmup` endpoint and then the flow of the app continues normally.
         

@@ -19,6 +19,7 @@ SendIt is a fast, no-signup file transfer service designed to help users send fi
   - [Frontend](#frontend)
   - [Backend](#backend)
 
+
 ## 🌟 Features
 
 - No User SignUp needed
@@ -177,3 +178,14 @@ sendit/
         - if `expiryDate <= current_date`:
             - delete file from Storage
 
+## Deployment
+- Frontend is deployed on **Vercel**
+    - directory: `/sendit_frontend` is selected as root directory for this deployment
+    - after deploying the backend service, the `.env` variables for `/upload` and `/warmup` endpoints are updated according to the new **IP address**
+- Backend is deployed on **Render** + **Firebase** + **Upstash**
+    - environment variables are loaded as mentioned above
+    - #### Issues with Backend deployment on Render and Fix
+        - I chose the **free tier** on Render for my node server which comes with a big limitation: the server instance goes to sleep after **15 minutes** of 0 inbound traffic requests. The server takes about **50 seconds** to come back live after detecting some inbound request the instance.
+    - #### Fix:
+        - I developed a new `/warmup` endpoint which the frontend app starts to ping as soon as it is launched in a browser. The status button displays the status of the server if online/ offline for better UX. We wait till the server is online; i.e. after getting a `status:2XX` response from `/warmup` endpoint and then the flow of the app continues normally.
+        

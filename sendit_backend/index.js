@@ -18,19 +18,9 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// Force HTTPS middleware
-// app.use((req, res, next) => {
-//     if (req.headers["x-forwarded-proto"] !== "https") {
-//         return res.redirect(`https://${req.get("host")}${req.url}`);
-//     }
-//     next();
-// });
-// Force HTTPS middleware
+// Force HTTPS middleware for /download
 app.use((req, res, next) => {
-    if (
-        req.headers["x-forwarded-proto"] !== "https" &&
-        req.path == "/download"
-    ) {
+    if (req.headers["x-forwarded-proto"] !== "https" && req.path === "/download") {
         return res.redirect(`https://${req.get("host")}${req.url}`);
     }
     next();
@@ -45,22 +35,29 @@ admin.initializeApp({
 const bucket = admin.storage().bucket();
 const db = admin.firestore();
 
-// Initialize Redis client with Upstash credentials
+// **Updated**: Initialize Redis client with improved configuration
 const redisClient = Redis.createClient({
     url: process.env.REDIS_URL,
     socket: {
+        keepAlive: 1000, // Send keep-alive every 1 second
+        timeout: 30000, // 30 seconds timeout
         reconnectStrategy: (retries) => {
-            console.log(`Reconnect attempt #${retries}`);
-            if (retries > 100000) {
-                return new Error("Too many retries, stopping...");
+            if (retries > 50) {
+                console.error("Too many retries, giving up");
+                return new Error("Too many retries");
             }
-            return Math.min(retries * 100, 10000);
+            const delay = Math.min(retries * 100, 5000);
+            console.log(`Reconnect attempt #${retries}, delaying ${delay}ms`);
+            return delay;
         },
     },
 });
 
 redisClient.on("error", (err) => console.error("Redis Client Error:", err));
 redisClient.on("connect", () => console.log("Connected to Upstash Redis"));
+// **Added**: Additional event listeners for monitoring
+redisClient.on("reconnecting", () => console.log("Reconnecting to Redis"));
+redisClient.on("end", () => console.log("Redis connection ended"));
 
 (async () => {
     try {
@@ -69,6 +66,16 @@ redisClient.on("connect", () => console.log("Connected to Upstash Redis"));
         console.error("Failed to connect to Redis:", err);
     }
 })();
+
+// **Added**: Periodic ping to keep connection alive
+setInterval(async () => {
+    try {
+        await redisClient.ping();
+        console.log("Redis ping successful");
+    } catch (err) {
+        console.error("Redis ping failed:", err);
+    }
+}, 5 * 60 * 1000); // Every 5 minutes
 
 // Nodemailer transporter
 const transporter = nodemailer.createTransport({
@@ -79,20 +86,22 @@ const transporter = nodemailer.createTransport({
     },
 });
 
-// Rate limiting middleware
+// **Updated**: Rate limiting middleware with error handling
 const rateLimiter = async (req, res, next) => {
     const ip = req.ip;
-    const current = await redisClient.incr(ip);
-
-    if (current > 1000) {
-        return res.status(429).send("Too many requests");
+    try {
+        const current = await redisClient.incr(ip);
+        if (current > 1000) {
+            return res.status(429).send("Too many requests");
+        }
+        if (current === 1) {
+            await redisClient.expire(ip, 3600);
+        }
+        next();
+    } catch (err) {
+        console.error("Redis error in rate limiter:", err);
+        next(); // Fail-open: allow request if Redis is down
     }
-
-    if (current === 1) {
-        await redisClient.expire(ip, 3600);
-    }
-
-    next();
 };
 
 app.post("/upload", rateLimiter, upload.single("file"), async (req, res) => {
@@ -131,9 +140,6 @@ app.post("/upload", rateLimiter, upload.single("file"), async (req, res) => {
         });
 
         // Create a download URL that points to our new endpoint
-        // const downloadUrl = `${req.protocol}://${req.get("host")}/download/${
-        //     docRef.id
-        // }`;
         const downloadUrl = `https://${req.get("host")}/download/${docRef.id}`;
 
         const expiryDate = expiryTimestamp.toDate();
@@ -198,6 +204,16 @@ app.get("/download/:fileId", async (req, res) => {
     }
 });
 
+// **Added**: Health check for Redis
+app.get("/redis-health", async (req, res) => {
+    try {
+        await redisClient.ping();
+        res.status(200).send("Redis is healthy");
+    } catch (err) {
+        res.status(503).send("Redis is down");
+    }
+});
+
 app.get("/warmup", (req, res) => {
     res.status(200).send("OK");
 });
@@ -216,7 +232,6 @@ const deleteExpiredFiles = async () => {
         const deletePromises = expiredFiles.docs.map(async (doc) => {
             const { filename } = doc.data();
             try {
-                // console.log(bucket.file(filename).exists());
                 await bucket.file(`files/${filename}`).delete();
                 await doc.ref.delete();
                 console.log(`Deleted expired file: ${filename}`);
@@ -225,21 +240,4 @@ const deleteExpiredFiles = async () => {
             }
         });
 
-        await Promise.all(deletePromises);
-        console.log(
-            `Deletion check complete. Processed ${deletePromises.length} files.`
-        );
-    } catch (error) {
-        console.error("Error in deleteExpiredFiles:", error);
-    }
-};
-
-// Schedule the deletion check every 12 hours
-setInterval(deleteExpiredFiles, 12 * 60 * 60 * 1000);
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on port localhost:${PORT}`);
-    // Run initial check for expired files on server start
-    deleteExpiredFiles();
-});
+        await Promise.all(deletePromises

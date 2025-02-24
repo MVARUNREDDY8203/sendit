@@ -20,7 +20,10 @@ app.use(cors(corsOptions));
 
 // Force HTTPS middleware for /download
 app.use((req, res, next) => {
-    if (req.headers["x-forwarded-proto"] !== "https" && req.path === "/download") {
+    if (
+        req.headers["x-forwarded-proto"] !== "https" &&
+        req.path === "/download"
+    ) {
         return res.redirect(`https://${req.get("host")}${req.url}`);
     }
     next();
@@ -240,4 +243,21 @@ const deleteExpiredFiles = async () => {
             }
         });
 
-        await Promise.all(deletePromises
+        await Promise.all(deletePromises);
+        console.log(
+            `Deletion check complete. Processed ${deletePromises.length} files.`
+        );
+    } catch (error) {
+        console.error("Error in deleteExpiredFiles:", error);
+    }
+};
+
+// Schedule the deletion check every 12 hours
+setInterval(deleteExpiredFiles, 12 * 60 * 60 * 1000);
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server running on port localhost:${PORT}`);
+    // Run initial check for expired files on server start
+    deleteExpiredFiles();
+});
